@@ -13,15 +13,6 @@ jobs:
   sonarcloud_analysis:
     runs-on: self-hosted  # Use self-hosted runner
       
-    services:
-      sonarqube:
-        image: sonarqube
-        ports:
-          - 9000:9000  # Expose SonarQube on port 9000
-        options: >-
-          --health-cmd="curl --silent --fail http://localhost:9000/api/system/ping"
-          --health-interval=10s
-          --health-retries=3
     steps:
       # Checkout the CI pipeline repository (this repository where the action lives)
       - name: Checkout CI pipeline repository
