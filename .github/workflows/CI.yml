@@ -7,12 +7,12 @@ on:
   pull_request:
     branches:
       - main  # Trigger on pull request to the main branch
-  workflow_dispatch:  # Allows manual trigger of the workflow
+  workflow_dispatch:  # Manual trigger of the workflow
 
 jobs:
   sonarcloud_analysis:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted  # Use self-hosted runner
+      
     services:
       sonarqube:
         image: sonarqube
@@ -22,11 +22,18 @@ jobs:
           --health-cmd="curl --silent --fail http://localhost:9000/api/system/ping"
           --health-interval=10s
           --health-retries=3
-
     steps:
-      # Checkout the repository
-      - name: Checkout code
+      # Checkout the CI pipeline repository (this repository where the action lives)
+      - name: Checkout CI pipeline repository
         uses: actions/checkout@v2
+
+      # Checkout the code repository (the other repository you need to build)
+      - name: Checkout code from another repository
+        uses: actions/checkout@v2
+        with:
+          repository: krishnakekan09/dotnet_hello_World  # The repository to check out
+          token: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for authentication
+          path: code-repo  # Optional: Specify where to store the repo on the runner
 
       # Set up .NET SDK
       - name: Set up .NET SDK
@@ -65,8 +72,8 @@ jobs:
           docker push hello-world-api:${{ github.sha }}
 
   deploy:
-    runs-on: ubuntu-latest
-    needs: sonarcloud_analysis  # Ensure SonarQube analysis finishes before deploying
+    runs-on: self-hosted  # Use self-hosted runner for deployment as well
+    needs: sonarcloud_analysis  # Ensure SonarCloud analysis finishes before deploying
 
     steps:
       - name: Checkout code
@@ -84,11 +91,11 @@ jobs:
           ssh user@your-server "docker pull hello-world-api:${{ github.sha }}"
           ssh user@your-server "docker stop hello-world-api || true && docker run -d -p 5000:5000 --name hello-world-api hello-world-api:${{ github.sha }}"
 
-  #failure-notify:
-  #  runs-on: ubuntu-latest
-  #  if: failure()  # Runs only if any of the jobs fail
+  failure-notify:
+    runs-on: self-hosted  # Use self-hosted runner for failure notification as well
+    if: failure()  # Runs only if any of the jobs fail
 
-  #  steps:
-  #    - name: Notify failure (via email or Slack)
-  #      run: |
-  #        curl -X POST -H 'Content-type: application/json' --data '{"text":"Build or Deployment Failed!"}' https://hooks.slack.com/services/your/slack/webhook
+    steps:
+      - name: Notify failure (via email or Slack)
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"Build or Deployment Failed!"}' https://hooks.slack.com/services/your/slack/webhook
