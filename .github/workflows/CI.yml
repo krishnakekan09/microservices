@@ -52,7 +52,7 @@ jobs:
       - name: Ensure SonarScanner tool is available
         run: |
           export PATH="$PATH:/home/krishnakekan/.dotnet/tools"  # Add SonarScanner tools to PATH
-          dotnet sonarscanner --version  # Verify the tool is available
+          #dotnet sonarscanner --version  # Verify the tool is available
 
       # Set up SonarQube for analysis (on local SonarQube instance)
       - name: Run SonarQube analysis
