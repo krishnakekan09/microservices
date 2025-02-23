@@ -42,6 +42,11 @@ jobs:
         with:
           dotnet-version: '7.0'
 
+      # Install SonarScanner for .NET
+      - name: Install SonarScanner for .NET
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+
       # Set up SonarQube for analysis (on local SonarQube instance)
       - name: Run SonarQube analysis
         run: |
