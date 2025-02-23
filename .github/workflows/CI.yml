@@ -43,10 +43,16 @@ jobs:
           dotnet-version: '7.0'
 
       # Install SonarScanner for .NET
-      - name: Install SonarScanner for .NET
+      #- name: Install SonarScanner for .NET
+      #  run: |
+      #    dotnet tool install --global dotnet-sonarscanner
+      #    export PATH="$PATH:/home/krishnakekan/.dotnet/tools"  # Add SonarScanner tools to PATH
+
+      # Add SonarScanner tool directory to PATH
+      - name: Ensure SonarScanner tool is available
         run: |
-          dotnet tool install --global dotnet-sonarscanner
           export PATH="$PATH:/home/krishnakekan/.dotnet/tools"  # Add SonarScanner tools to PATH
+          dotnet sonarscanner --version  # Verify the tool is available
 
       # Set up SonarQube for analysis (on local SonarQube instance)
       - name: Run SonarQube analysis
