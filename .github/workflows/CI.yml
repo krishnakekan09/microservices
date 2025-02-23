@@ -35,6 +35,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for authentication
           path: code-repo  # Optional: Specify where to store the repo on the runner
 
+      # Check current user
+      - name: Check current user
+        run: whoami  # Verifies which user is running the pipeline
+
+      # Check Docker group membership and Docker version
+      - name: Check if user has Docker permissions
+        run: |
+          groups  # List all groups the current user belongs to
+          docker version  # Check if Docker is accessible
+
       # Set up .NET SDK
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v2
