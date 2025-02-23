@@ -46,6 +46,7 @@ jobs:
       - name: Install SonarScanner for .NET
         run: |
           dotnet tool install --global dotnet-sonarscanner
+          export PATH="$PATH:/home/krishnakekan/.dotnet/tools"  # Add SonarScanner tools to PATH
 
       # Set up SonarQube for analysis (on local SonarQube instance)
       - name: Run SonarQube analysis
