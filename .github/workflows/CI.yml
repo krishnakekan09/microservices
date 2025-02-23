@@ -45,8 +45,10 @@ jobs:
       # Set up SonarQube for analysis (on local SonarQube instance)
       - name: Run SonarQube analysis
         run: |
+          # Navigate to the folder containing your project (if necessary)
+          cd code-repo  # Replace with your project directory if different
           # Begin SonarQube analysis
-          dotnet sonarscanner begin /k:"your-sonar-project-key" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
+          dotnet sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
           # Build the project
           dotnet build
           # End SonarQube analysis
@@ -55,11 +57,13 @@ jobs:
       # Build Docker image
       - name: Build Docker image
         run: |
+          cd code-repo  # Navigate to the folder containing the Dockerfile
           docker build -t hello-world-api:${{ github.sha }} .
 
       # Run tests inside Docker container
       - name: Run tests inside Docker container
         run: |
+          cd code-repo  # Navigate to the folder containing the Dockerfile
           docker run --rm hello-world-api:${{ github.sha }} dotnet test  # Run tests inside the container
 
       # Docker image scanning (optional)
