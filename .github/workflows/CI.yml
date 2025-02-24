@@ -79,19 +79,22 @@ jobs:
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./.sonar/scanner
-          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
+          dotnet tool install dotnet-sonarscanner --tool-path $HOME/.sonar/scanner  # Use absolute path for global access
 
       # Run SonarQube analysis
       - name: Build and analyze
         run: |
           # Change to the directory where the solution file is located (root of your repository)
           cd code-repo
+          # Ensure that the SonarScanner tool directory is added to PATH
+          echo "$HOME/.sonar/scanner" >> $GITHUB_PATH
           # Begin SonarQube analysis
-          ./.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
+          $HOME/.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
           # Build the solution by specifying the path to the .sln file
           dotnet build ./dotnet-hello-world.sln
           # End SonarQube analysis
-          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
 
       # Build Docker image
       - name: Build Docker image
