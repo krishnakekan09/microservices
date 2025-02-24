@@ -84,10 +84,12 @@ jobs:
       # Run SonarQube analysis
       - name: Build and analyze
         run: |
+          # Change to the directory where the solution file is located (root of your repository)
+          cd code-repo
           # Begin SonarQube analysis
           ./.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
-          # Build the project
-          dotnet build
+          # Build the solution by specifying the path to the .sln file
+          dotnet build ./dotnet-hello-world.sln
           # End SonarQube analysis
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
