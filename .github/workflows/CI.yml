@@ -37,6 +37,11 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0'
+          install-dir: $HOME/.dotnet
+
+      # Ensure .NET is in PATH
+      - name: Add .NET to PATH
+        run: echo "$HOME/.dotnet" >> $GITHUB_PATH
 
       # Cache SonarQube packages
       - name: Cache SonarQube packages
