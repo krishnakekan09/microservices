@@ -45,28 +45,17 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0'
-          install-dir: $HOME/.dotnet
+          cache: false
 
-    # Set up .NET SDK
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '7.0'
-        cache: false
-
-    # Set the DOTNET_INSTALL_DIR environment variable and adjust PATH
-    - name: Set DOTNET_INSTALL_DIR and add .NET to PATH
-      run: |
-        # Create a directory for .NET installation
-        mkdir -p $DOTNET_INSTALL_DIR
-        # Set DOTNET_ROOT environment variable to the custom directory
-        echo "DOTNET_ROOT=$DOTNET_INSTALL_DIR" >> $GITHUB_ENV
-        # Add the custom .NET directory to the PATH
-        echo "$DOTNET_INSTALL_DIR" >> $GITHUB_PATH
-
-      # Ensure .NET is in PATH
-      - name: Add .NET to PATH
-        run: echo "$HOME/.dotnet" >> $GITHUB_PATH
+      # Set the DOTNET_INSTALL_DIR environment variable and adjust PATH
+      - name: Set DOTNET_INSTALL_DIR and add .NET to PATH
+        run: |
+          # Create a directory for .NET installation
+          mkdir -p $DOTNET_INSTALL_DIR
+          # Set DOTNET_ROOT environment variable to the custom directory
+          echo "DOTNET_ROOT=$DOTNET_INSTALL_DIR" >> $GITHUB_ENV
+          # Add the custom .NET directory to the PATH
+          echo "$DOTNET_INSTALL_DIR" >> $GITHUB_PATH
 
       # Cache SonarQube packages
       - name: Cache SonarQube packages
