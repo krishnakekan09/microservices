@@ -141,7 +141,7 @@ jobs:
           # Run the Trivy scan
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $PWD/.trivyignore:/root/.trivyignore:ro \  # Mount the .trivyignore file into the container
+            -v $PWD/.trivyignore:/root/.trivyignore:ro \
             aquasec/trivy:latest \
             --ignorefile /root/.trivyignore \
             image --exit-code 1 --severity HIGH,CRITICAL hello-world-api:${{ github.sha }}
