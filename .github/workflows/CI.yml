@@ -129,11 +129,11 @@ jobs:
       # Create .trivyignore file to whitelist CVEs
       - name: Create .trivyignore file
         run: |
-          echo "CVE-2022-3715" >> $HOME/.trivyignore
-          echo "CVE-2019-8457" >> $HOME/.trivyignore
-          echo "CVE-2021-33560" >> $HOME/.trivyignore
-          echo "CVE-2022-4899" >> $HOME/.trivyignore
-          echo "CVE-2023-45853" >> $HOME/.trivyignore
+          echo "CVE-2022-3715" >> .trivyignore
+          echo "CVE-2019-8457" >> .trivyignore
+          echo "CVE-2021-33560" >> .trivyignore
+          echo "CVE-2022-4899" >> .trivyignore
+          echo "CVE-2023-45853" >> .trivyignore
 
       # Run Trivy Docker container to scan your Docker image
       - name: Run Trivy Docker container to scan image
@@ -141,8 +141,9 @@ jobs:
           # Run the Trivy scan
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $PWD/.trivyignore:/root/.trivyignore:ro \  # Mount the .trivyignore file into the container
             aquasec/trivy:latest \
-            --ignorefile $HOME/.trivyignore \
+            --ignorefile /root/.trivyignore \
             image --exit-code 1 --severity HIGH,CRITICAL hello-world-api:${{ github.sha }}
 
           # Capture the exit code of the Trivy scan
