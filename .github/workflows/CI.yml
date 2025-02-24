@@ -84,7 +84,12 @@ jobs:
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./.sonar/scanner
-          dotnet tool install dotnet-sonarscanner --tool-path $HOME/.sonar/scanner  # Use absolute path for global access
+          # Check if dotnet-sonarscanner is already installed
+          if ! dotnet tool list --tool-path $HOME/.sonar/scanner | grep -q "dotnet-sonarscanner"; then
+            dotnet tool install dotnet-sonarscanner --tool-path $HOME/.sonar/scanner  # Install the tool only if not already installed
+          else
+            echo "dotnet-sonarscanner is already installed, skipping installation."
+          fi
 
       # Run SonarQube analysis
       - name: Build and analyze
