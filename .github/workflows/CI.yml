@@ -47,6 +47,11 @@ jobs:
           dotnet-version: '7.0'
           cache: false
 
+      # Install .NET runtime explicitly
+      - name: Install .NET runtime (if needed)
+        run: |
+          sudo apt-get install -y dotnet-runtime-7.0
+
       # Set the DOTNET_INSTALL_DIR environment variable and adjust PATH
       - name: Set DOTNET_INSTALL_DIR and add .NET to PATH
         run: |
@@ -94,7 +99,6 @@ jobs:
           dotnet build ./dotnet-hello-world.sln
           # End SonarQube analysis
           $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-
 
       # Build Docker image
       - name: Build Docker image
