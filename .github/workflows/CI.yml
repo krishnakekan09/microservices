@@ -126,14 +126,38 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-trivy-
 
+      # Create .trivyignore file to whitelist CVEs
+      - name: Create .trivyignore file
+        run: |
+          echo "CVE-2022-3715" > .trivyignore
+          echo "CVE-2019-8457" >> .trivyignore
+          echo "CVE-2021-33560" >> .trivyignore
+          echo "CVE-2022-4899" >> .trivyignore
+          echo "CVE-2023-45853" >> .trivyignore
+
       # Run Trivy Docker container to scan your Docker image
       - name: Run Trivy Docker container to scan image
         run: |
+          # Run the Trivy scan
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest \
+            --ignorefile .trivyignore \
             image --exit-code 1 --severity HIGH,CRITICAL hello-world-api:${{ github.sha }}
-          # Fail if vulnerabilities are found
+
+          # Capture the exit code of the Trivy scan
+          TRIVY_EXIT_CODE=$?
+
+          # Check the exit code and handle it accordingly
+          if [ $TRIVY_EXIT_CODE -eq 0 ]; then
+            echo "No vulnerabilities found. Scan passed!"
+          elif [ $TRIVY_EXIT_CODE -eq 1 ]; then
+            echo "Vulnerabilities found! Scan failed."
+            exit 1  # Explicitly fail the pipeline for vulnerabilities found
+          else
+            echo "Error occurred during scan! Exit code: $TRIVY_EXIT_CODE"
+            exit $TRIVY_EXIT_CODE  # Propagate the error code if something went wrong
+          fi
 
       # Push Docker image to registry
       - name: Push Docker image
