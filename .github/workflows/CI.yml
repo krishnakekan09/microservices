@@ -26,35 +26,51 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for authentication
           path: code-repo  # Optional: Specify where to store the repo on the runner
 
-      # Check current user
-      - name: Check current user
-        run: whoami  # Verifies which user is running the pipeline
-
-      # Check Docker group membership and Docker version
-      - name: Check if user has Docker permissions
+      # Install dependencies (if required)
+      - name: Install dependencies
         run: |
-          groups  # List all groups the current user belongs to
-          docker version  # Check if Docker is accessible
+          sudo apt-get update
+          sudo apt-get install -y unzip curl
 
       # Set up .NET SDK
       - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0'
 
-      # Set up SonarQube for analysis (on local SonarQube instance)
-      - name: Run SonarQube analysis
+      # Cache SonarQube packages
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # Cache SonarQube scanner
+      - name: Cache SonarQube scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: ./.sonar/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      # Install SonarQube scanner if not cached
+      - name: Install SonarQube scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
-          # Navigate to the folder containing your project (if necessary)
-          cd code-repo  # Replace with your project directory if different
-          dotnet tool install --global dotnet-sonarscanner --version 9.2.0
-          export PATH="$PATH:/home/krishnakekan/.dotnet/tools"
+          mkdir -p ./.sonar/scanner
+          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
+
+      # Run SonarQube analysis
+      - name: Build and analyze
+        run: |
           # Begin SonarQube analysis
-          dotnet sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
+          ./.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.DOTNET_HELLO_WORLD_PROJECTKEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://localhost:9000"
           # Build the project
           dotnet build
           # End SonarQube analysis
-          dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       # Build Docker image
       - name: Build Docker image
