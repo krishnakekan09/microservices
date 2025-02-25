@@ -2,7 +2,6 @@ name: Centralized CI/CD Pipeline
 
 on:
   repository_dispatch:
-    types: [ci_cd_trigger]  # Custom type you define for dispatch trigger
 
 jobs:
   ci_cd_pipeline:
