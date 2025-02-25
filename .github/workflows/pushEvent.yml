@@ -1,0 +1,23 @@
+name: Centralized CI/CD Pipeline
+
+on:
+  repository_dispatch:
+    types: [ci_cd_trigger]  # Custom type you define for dispatch trigger
+
+jobs:
+  ci_cd_pipeline:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Get event details
+        run: |
+          echo "Event Details: ${{ github.event }}"
+
+      # Add steps to process the push details and trigger your CI/CD pipeline
+      - name: Process push event from dotnet-app repo
+        run: |
+          echo "Processing event for repository: ${{ github.event.client_payload.repo_name }}"
+          echo "Branch: ${{ github.event.client_payload.ref }}"
+          # Add custom processing logic here for multi-language CI/CD (dotnet, python, etc.)
