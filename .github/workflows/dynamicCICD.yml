@@ -1,0 +1,220 @@
+name: Centralized CI/CD Pipeline for Multi-Language Repos
+
+on:
+  repository_dispatch:
+    types: [ci_cd_trigger]  # This event type is triggered by other repositories
+
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      language:
+        description: 'Application Language (dotnet, java, python)'
+        required: true
+        default: 'dotnet'  # Default to dotnet if no input is provided
+      repo_link:
+        description: 'Repository Link (e.g., user/repo-name)'
+        required: true
+      environment:
+        description: 'Target Environment (dev, prod)'
+        required: true
+        default: 'dev'  # Default to dev if no input is provided
+
+jobs:
+  ci_cd_pipeline:
+    runs-on: self-hosted
+    env:
+      # Dynamically set APP_LANGUAGE based on the repository name
+      APP_LANGUAGE: ${{ 
+        github.event.client_payload.repo_link == 'java-app' && 'java' || 
+        github.event.client_payload.repo_link == 'python-app' && 'python' || 
+        github.event.client_payload.repo_link == 'dotnet-app' && 'dotnet' || 
+        'unknown' 
+      }}
+      
+      # Dynamically set the environment based on the ref (branch name)
+      ENVIRONMENT: ${{ 
+        github.event.client_payload.ref == 'refs/heads/main' && 'prod' || 
+        github.event.client_payload.ref == 'refs/heads/dev' && 'dev' || 
+        'no_branch' 
+      }}
+
+      REPO_LINK: ${{ github.event.client_payload.repo_link }}  # Repo link from the dispatch payload
+      SONARQUBE_PROJECT_KEY: ${{ secrets.SONARQUBE_PROJECT_KEY }}  # SonarQube project key from secrets
+      SONARQUBE_TOKEN: ${{ secrets.SONAR_TOKEN }}  # SonarQube token from secrets
+
+    steps:
+      # Checkout the application repository
+      - name: Checkout the application repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.REPO_LINK }}  # Clone the repo dynamically based on the passed repo link
+          ref: ${{ env.ENVIRONMENT == 'prod' && 'refs/heads/main' || env.ENVIRONMENT == 'dev' && 'refs/heads/dev' || 'refs/heads/other-branch' }}  # Check out the appropriate branch
+
+      # Log Application Language and Repo Details
+      - name: Log Application Language and Repo Details
+        run: |
+          echo "Repository Name: ${{ github.event.client_payload.repo_link }}"
+          echo "Detected Application Language: ${{ env.APP_LANGUAGE }}"
+          if [ "${{ env.APP_LANGUAGE }}" == "unknown" ]; then
+            echo "ERROR: Unknown language detected. Please check the repository name."
+            exit 1
+          fi
+
+      # Check if Maven Wrapper exists (for Java projects)
+      - name: Check if Maven Wrapper exists
+        run: |
+          if [ "${{ env.APP_LANGUAGE }}" == "java" ] && [ ! -f "./mvnw" ]; then
+            echo "ERROR: Maven Wrapper (mvnw) not found. Ensure mvnw is included in the repository."
+            exit 1
+          fi
+
+      # Set up environment dynamically based on the application language
+      - name: Set up environment for application language
+        run: |
+          if [ "${{ env.APP_LANGUAGE }}" == "dotnet" ]; then
+            echo "Setting up .NET environment"
+            dotnet --version
+          elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
+            echo "Setting up Python environment"
+            python --version
+          elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
+            echo "Setting up Java environment"
+            java -version
+          else
+            echo "Unknown language!"
+            exit 1
+          fi
+
+      # Install dependencies based on the language
+      - name: Install dependencies
+        run: |
+          if [ "${{ env.APP_LANGUAGE }}" == "dotnet" ]; then
+            dotnet restore || { echo "ERROR: Failed to restore .NET dependencies. Exiting."; exit 1; }
+          elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
+            python -m pip install --upgrade pip || { echo "ERROR: Failed to upgrade pip. Exiting."; exit 1; }
+            pip install -r requirements.txt || { echo "ERROR: Failed to install from requirements.txt. Exiting."; exit 1; }
+          elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
+            ./mvnw install || { echo "ERROR: Maven install failed. Exiting."; exit 1; }
+          else
+            echo "No dependencies to install for unknown language"
+            exit 1
+          fi
+
+      # SonarQube analysis step (condensed into one step)
+      - name: SonarQube analysis
+        run: |
+          if [ "${{ env.APP_LANGUAGE }}" == "dotnet" ]; then
+            echo "Installing .NET SonarQube scanner..."
+            mkdir -p $HOME/.sonar/scanner
+            if ! dotnet tool list --tool-path $HOME/.sonar/scanner | grep -q "dotnet-sonarscanner"; then
+              dotnet tool install dotnet-sonarscanner --tool-path $HOME/.sonar/scanner
+            else
+              echo "dotnet-sonarscanner is already installed, skipping installation."
+            fi
+            # Begin and end SonarQube analysis for .NET
+            echo "$HOME/.sonar/scanner" >> $GITHUB_PATH
+            $HOME/.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" /d:sonar.token="${{ secrets.SONARQUBE_TOKEN }}" /d:sonar.host.url="http://sonarqube:9000"
+            dotnet build ./dotnet-project.sln
+            $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONARQUBE_TOKEN }}"
+
+          elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
+            echo "Running SonarQube analysis for Java..."
+            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONARQUBE_TOKEN"
+
+          elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
+            echo "Running SonarQube analysis for Python..."
+            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONARQUBE_TOKEN"
+
+          else
+            echo "Unknown application language! Skipping SonarQube analysis."
+            exit 1
+          fi
+
+      # Run Tests Based on Language
+      #- name: Run tests
+      #  run: |
+      #    if [ "${{ env.APP_LANGUAGE }}" == "dotnet" ]; then
+      #      dotnet test || { echo "ERROR: .NET tests failed. Exiting."; exit 1; }
+      #    elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
+      #      pytest || { echo "ERROR: Python tests failed. Exiting."; exit 1; }
+      #    elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
+      #      ./mvnw test || { echo "ERROR: Java tests failed. Exiting."; exit 1; }
+      #    else
+      #      echo "No tests for unknown language"
+      #      exit 1
+      #    fi
+
+      # Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}  # Store your Docker Hub username in GitHub secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Store your Docker Hub password or access token in GitHub secrets          
+          
+      # Docker Build Stage
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ github.repository }}:${{ github.sha }} -f Dockerfile . || { echo "ERROR: Docker build failed. Exiting."; exit 1; }
+
+      # Cache Trivy Docker image to avoid re-downloading it in every run
+      - name: Cache Trivy Docker image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.cache/trivy
+          key: ${{ runner.os }}-trivy-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-
+
+      # Create .trivyignore file to whitelist CVEs
+      - name: Create .trivyignore file
+        run: |
+          echo "CVE-2022-3715" >> .trivyignore
+          echo "CVE-2019-8457" >> .trivyignore
+          echo "CVE-2021-33560" >> .trivyignore
+          echo "CVE-2022-4899" >> .trivyignore
+          echo "CVE-2023-45853" >> .trivyignore
+
+      # Run Trivy Docker container to scan image
+      - name: Run Trivy Docker container to scan image
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $PWD/.trivyignore:/root/.trivyignore:ro \
+            aquasec/trivy:latest \
+            --ignorefile /root/.trivyignore \
+            image --exit-code 1 --severity HIGH,CRITICAL ${{ github.repository }}:${{ github.sha }} 
+          TRIVY_EXIT_CODE=$?
+          if [ $TRIVY_EXIT_CODE -eq 0 ]; then
+            echo "No vulnerabilities found. Scan passed!"
+          elif [ $TRIVY_EXIT_CODE -eq 1 ]; then
+            echo "Vulnerabilities found! Scan failed."
+            exit 1  # Explicitly fail the pipeline for vulnerabilities found
+          else
+            echo "Error occurred during scan! Exit code: $TRIVY_EXIT_CODE"
+            exit $TRIVY_EXIT_CODE  # Propagate the error code if something went wrong
+          fi
+
+      # Docker Push Stage
+      - name: Push Docker image
+        run: |
+          docker push ${{ github.repository }}:${{ github.sha }} || { echo "ERROR: Docker push failed. Exiting."; exit 1; }
+
+      # Deploy Docker image to Dev environment
+      - name: Deploy Docker image to Dev environment
+        if: env.ENVIRONMENT == 'dev'
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no krishnakekan@CHL29 "docker pull ${{ github.repository }}:${{ github.sha }} && docker run -d -p 8080:80 --name ${{ github.repository }}:${{ github.sha }}" || { echo "ERROR: Deployment to dev failed. Exiting."; exit 1; }
+
+      # Deploy Docker image to Prod environment
+      - name: Deploy Docker image to Prod environment
+        if: env.ENVIRONMENT == 'prod'
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no krishnakekan@CHL29 "docker pull ${{ github.repository }}:${{ github.sha }} && docker stop ${{ github.repository }} || true && docker rm ${{ github.repository }} || true && docker run -d -p 8080:80 --name ${{ github.repository }}:${{ github.sha }}" || { echo "ERROR: Deployment to prod failed. Exiting."; exit 1; }
+
+      # Send failure notification to Slack if any step fails
+      #- name: Send failure notification to Slack
+      #  if: failure()  # Send this step only when the job fails
+      #  uses: rtCamp/action-slack-notify@v2
+      #  with:
+      #    status: 'failure'
+      #    webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}  # Configure this secret in your repository's secrets
+      #    message: 'CI/CD Pipeline Failed! Check the logs for more details.'
