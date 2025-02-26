@@ -143,7 +143,6 @@ jobs:
                         /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" \
                         /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
                         /d:sonar.host.url="http://sonarqube:9000" \
-                        /v:"1.0.0" \
                         /d:sonar.qualitygate.wait=true \
                         /d:sonar.branch.name="${{ env.branch }}"
             dotnet build
