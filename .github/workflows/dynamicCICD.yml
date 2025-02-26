@@ -144,7 +144,7 @@ jobs:
                         /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
                         /d:sonar.host.url="http://sonarqube:9000" \
                         /d:sonar.qualitygate.wait=true \
-                        /d:sonar.branch.name="${{ env.branch }}"
+                        /v:"1.0.0"
             dotnet build
             $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
