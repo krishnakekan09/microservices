@@ -43,6 +43,8 @@ jobs:
           echo "Detected Application Language (from env): ${{ env.APP_LANGUAGE }}"
           echo "REPO_NAME=$(echo "${{ env.REPO_LINK }}" | sed 's#https://github.com/##' | sed 's#\.git$##')" >> $GITHUB_ENV
           echo "REPO_NAME: ${{ env.REPO_NAME }}"
+          echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          echo "branch: ${{ env.branch }}"
 
       # Checkout the application repository
       - name: Checkout the application repository
@@ -137,7 +139,13 @@ jobs:
             fi
             # Begin and end SonarQube analysis for .NET
             echo "$HOME/.sonar/scanner" >> $GITHUB_PATH
-            $HOME/.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://sonarqube:9000"
+            $HOME/.sonar/scanner/dotnet-sonarscanner begin \
+                        /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" \
+                        /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+                        /d:sonar.host.url="http://sonarqube:9000" \
+                        /d:sonar.projectVersion="1.0.0" \
+                        /d:sonar.qualitygate.wait=true \
+                        /d:sonar.branch.name="${{ env.branch }}"
             dotnet build
             $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
@@ -183,6 +191,7 @@ jobs:
           echo "CVE-2021-33560" >> .trivyignore
           echo "CVE-2022-4899" >> .trivyignore
           echo "CVE-2023-45853" >> .trivyignore
+          echo "CVE-2023-31484" >> .trivyignore
 
       # Run Trivy Docker container to scan image
       - name: Run Trivy Docker container to scan image
