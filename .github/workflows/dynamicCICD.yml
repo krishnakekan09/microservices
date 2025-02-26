@@ -33,12 +33,24 @@ jobs:
       SONARQUBE_TOKEN: ${{ secrets.SONAR_TOKEN }}  # SonarQube token from secrets
 
     steps:
+      # Debugging: Print input variables to verify their values
+      - name: Debugging - Print input variables
+        run: |
+          echo "Repository Link: ${{ github.event.client_payload.repo_link }}"
+          echo "Application Language: ${{ github.event.client_payload.app_language }}"
+          echo "Target Environment: ${{ github.event.client_payload.environment }}"
+          echo "Detected Environment (from env): ${{ env.ENVIRONMENT }}"
+          echo "Detected Application Language (from env): ${{ env.APP_LANGUAGE }}"
+          REPO_NAME=$(echo "${{ github.event.client_payload.repo_link }}" | sed 's/https:\/\/github.com\///')
+          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+
       # Checkout the application repository
       - name: Checkout the application repository
         uses: actions/checkout@v2
         with:
-          repository: ${{ env.REPO_LINK }}  # Clone the repo dynamically based on the passed repo link
+          repository: ${{ env.REPO_NAME }}  # Clone the repo dynamically based on the passed repo link
           ref: ${{ github.event.client_payload.ref }}  # Check out the appropriate branch (ref)
+          #token: ${{ secrets.GITHUB_TOKEN }}  # Use the GITHUB_TOKEN for authentication
 
       # Log Application Language and Repo Details
       - name: Log Application Language and Repo Details
