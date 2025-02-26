@@ -200,7 +200,7 @@ jobs:
             -v $PWD/.trivyignore:/root/.trivyignore:ro \
             aquasec/trivy:latest \
             --ignorefile /root/.trivyignore \
-            image --exit-code 1 --severity HIGH,CRITICAL ${{ github.repository }}:${{ github.sha }} 
+            image --exit-code 1 --severity HIGH,CRITICAL ${{ env.REPO_NAME }}_${{ env.branch }}:${{ github.sha }} 
           TRIVY_EXIT_CODE=$?
           if [ $TRIVY_EXIT_CODE -eq 0 ]; then
             echo "No vulnerabilities found. Scan passed!"
