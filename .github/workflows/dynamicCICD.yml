@@ -41,8 +41,8 @@ jobs:
           echo "Target Environment: ${{ github.event.client_payload.environment }}"
           echo "Detected Environment (from env): ${{ env.ENVIRONMENT }}"
           echo "Detected Application Language (from env): ${{ env.APP_LANGUAGE }}"
-          REPO_NAME=$(echo "${{ github.event.client_payload.repo_link }}" | sed 's/https:\/\/github.com\///')
-          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+          echo "REPO_NAME=$(echo "${{ env.REPO_LINK }}" | sed 's#https://github.com/##' | sed 's#\.git$##')" >> $GITHUB_ENV
+          echo "REPO_NAME: ${{ env.REPO_NAME }}"
 
       # Checkout the application repository
       - name: Checkout the application repository
@@ -75,13 +75,31 @@ jobs:
         run: |
           if [ "${{ env.APP_LANGUAGE }}" == "dotnet" ]; then
             echo "Setting up .NET environment"
-            dotnet --version
+            if ! command -v dotnet &> /dev/null; then
+              echo ".NET SDK not found. Installing .NET SDK..."
+              # Install .NET SDK (example for Ubuntu)
+              wget https://dotnet.microsoft.com/download/dotnet -qO- | bash
+            else
+              echo ".NET SDK is already installed"
+            fi
           elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
             echo "Setting up Python environment"
-            python --version
+            if ! command -v python &> /dev/null; then
+              echo "Python not found. Installing Python..."
+              # Install Python (example for Ubuntu)
+              sudo apt-get update && sudo apt-get install -y python3
+            else
+              echo "Python is already installed"
+            fi
           elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
             echo "Setting up Java environment"
-            java -version
+            if ! command -v java &> /dev/null; then
+              echo "Java not found. Installing Java..."
+              # Install Java (example for Ubuntu)
+              sudo apt-get update && sudo apt-get install -y openjdk-11-jdk
+            else
+              echo "Java is already installed"
+            fi
           else
             echo "Unknown language!"
             exit 1
