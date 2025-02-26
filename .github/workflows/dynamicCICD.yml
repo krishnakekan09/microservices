@@ -137,17 +137,17 @@ jobs:
             fi
             # Begin and end SonarQube analysis for .NET
             echo "$HOME/.sonar/scanner" >> $GITHUB_PATH
-            $HOME/.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" /d:sonar.token="${{ secrets.SONARQUBE_TOKEN }}" /d:sonar.host.url="http://sonarqube:9000"
-            dotnet build ./dotnet-project.sln
-            $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONARQUBE_TOKEN }}"
+            $HOME/.sonar/scanner/dotnet-sonarscanner begin /k:"${{ secrets.SONARQUBE_PROJECT_KEY }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="http://sonarqube:9000"
+            dotnet build
+            $HOME/.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
           elif [ "${{ env.APP_LANGUAGE }}" == "java" ]; then
             echo "Running SonarQube analysis for Java..."
-            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONARQUBE_TOKEN"
+            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONAR_TOKEN"
 
           elif [ "${{ env.APP_LANGUAGE }}" == "python" ]; then
             echo "Running SonarQube analysis for Python..."
-            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONARQUBE_TOKEN"
+            sonar-scanner -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY -Dsonar.sources=. -Dsonar.host.url="http://sonarqube:9000" -Dsonar.login="$SONAR_TOKEN"
 
           else
             echo "Unknown application language! Skipping SonarQube analysis."
